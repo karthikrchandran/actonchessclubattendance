@@ -1,0 +1,145 @@
+'use client';
+
+import { useState } from 'react';
+
+const grades = ['K','1','2','3','4','5','6','7','8','9','10','11','12'];
+
+export default function Home() {
+  const [mode, setMode] = useState('code');
+  const [returnMethod, setReturnMethod] = useState('pin');
+  const [form, setForm] = useState({ name: '', grade: '', contact: '', memberCode: '', lookupContact: '' });
+  const [status, setStatus] = useState(null);
+  const [card, setCard] = useState(null);
+  const [matches, setMatches] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  function update(key, value) { setForm(f => ({ ...f, [key]: value })); }
+
+  function resetMessages() {
+    setStatus(null);
+    setCard(null);
+    setMatches([]);
+  }
+
+  async function submitCode(e) {
+    e.preventDefault();
+    await checkin({ memberCode: form.memberCode });
+  }
+
+  async function submitContact(e) {
+    e.preventDefault();
+    await checkin({ contactLookup: form.lookupContact }, true);
+  }
+
+  async function submitRegistration(e) {
+    e.preventDefault();
+    await checkin({ name: form.name, grade: form.grade, contact: form.contact }, true);
+  }
+
+  async function chooseMatch(memberCode) {
+    await checkin({ memberCode }, true);
+  }
+
+  async function checkin(payload, showCard = false) {
+    setLoading(true);
+    setStatus(null);
+    setCard(null);
+    try {
+      const res = await fetch('/api/checkin', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Check-in failed');
+
+      if (data.requiresSelection) {
+        setMatches(data.matches || []);
+        setStatus({ ok: true, text: 'More than one player uses that contact. Select the correct player.' });
+        return;
+      }
+
+      setMatches([]);
+      setStatus({ ok: true, text: data.alreadyCheckedIn ? `Already checked in today, ${data.firstName}.` : `Checked in! Welcome, ${data.firstName}.` });
+      if (showCard && data.memberCode && data.qrToken) {
+        setCard({
+          name: data.fullName,
+          grade: data.grade,
+          memberCode: data.memberCode,
+          qrToken: data.qrToken
+        });
+      }
+      setForm(f => ({ ...f, name: '', grade: '', contact: '', memberCode: '', lookupContact: '' }));
+    } catch (err) {
+      setMatches([]);
+      setStatus({ ok: false, text: err.message });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main>
+      <section className="card">
+        <h1>♟ Acton Chess Club</h1>
+        <p className="subtle">Saturday attendance check-in</p>
+
+        <div className="tabs">
+          <button type="button" className={mode === 'code' ? 'tab active' : 'tab'} onClick={() => { setMode('code'); resetMessages(); }}>Member check-in</button>
+          <button type="button" className={mode === 'register' ? 'tab active' : 'tab'} onClick={() => { setMode('register'); resetMessages(); }}>First visit</button>
+        </div>
+
+        {mode === 'code' ? <>
+          <div className="return-options">
+            <button type="button" className={returnMethod === 'pin' ? 'choice active' : 'choice'} onClick={() => { setReturnMethod('pin'); resetMessages(); }}>4-digit PIN</button>
+            <button type="button" className={returnMethod === 'contact' ? 'choice active' : 'choice'} onClick={() => { setReturnMethod('contact'); resetMessages(); }}>Email / phone</button>
+          </div>
+
+          {returnMethod === 'pin' ? <form onSubmit={submitCode}>
+            <label>4-digit member PIN</label>
+            <input className="member-code-input" value={form.memberCode} onChange={e => update('memberCode', e.target.value.replace(/\D/g, '').slice(0, 4))} required placeholder="Example: 4827" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} autoComplete="off" />
+            <p className="small">Or scan your personal Acton Chess Club QR code with a phone.</p>
+            <button disabled={loading}>{loading ? 'Checking in…' : 'Check in'}</button>
+          </form> : <form onSubmit={submitContact}>
+            <label>Email or phone used at registration</label>
+            <input value={form.lookupContact} onChange={e => update('lookupContact', e.target.value)} required placeholder="Parent/guardian or student email/phone" autoCapitalize="none" autoComplete="email" />
+            <p className="small">Use this if you forgot your PIN. The app matches the contact securely without storing the original value.</p>
+            <button disabled={loading}>{loading ? 'Finding player…' : 'Find me & check in'}</button>
+          </form>}
+
+          {matches.length > 0 && <div className="match-list">
+            {matches.map(m => <button key={m.memberCode} type="button" className="match-button" disabled={loading} onClick={() => chooseMatch(m.memberCode)}>
+              <span>{m.fullName}</span><small>Grade {m.grade}</small>
+            </button>)}
+          </div>}
+        </> : <form onSubmit={submitRegistration}>
+          <label>Player name</label>
+          <input value={form.name} onChange={e => update('name', e.target.value)} autoComplete="name" required placeholder="First and last name" />
+
+          <label>Grade</label>
+          <select value={form.grade} onChange={e => update('grade', e.target.value)} required>
+            <option value="">Select grade</option>
+            {grades.map(g => <option key={g} value={g}>{g}</option>)}
+          </select>
+
+          <label>Parent/guardian or student email/phone</label>
+          <input value={form.contact} onChange={e => update('contact', e.target.value)} required placeholder="Email or phone" autoCapitalize="none" />
+          <p className="small">For younger players, use a parent/guardian contact. It is used to match the correct player; the original contact is not stored.</p>
+          <button disabled={loading}>{loading ? 'Creating member…' : 'Register & check in'}</button>
+        </form>}
+
+        {status && <div className={`message ${status.ok ? 'success' : 'error'}`}>{status.text}</div>}
+
+        {card && <div className="member-card-wrap">
+          <div className="member-card">
+            <div className="club-mark">♟ ACTON CHESS CLUB</div>
+            <h2>{card.name}</h2>
+            <p>Grade {card.grade}</p>
+            <img src={`/api/qr/${encodeURIComponent(card.qrToken)}`} alt={`QR membership card for ${card.name}`} />
+            <div className="code-label">MEMBER PIN</div>
+            <div className="big-code">{card.memberCode}</div>
+            <p className="card-note">Take a screenshot of this card. Next Saturday, scan the QR or enter the 4-digit PIN.</p>
+          </div>
+        </div>}
+      </section>
+    </main>
+  );
+}
