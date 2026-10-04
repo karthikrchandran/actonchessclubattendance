@@ -61,7 +61,7 @@ export default function Admin() {
 
   return <main className="admin-main"><section className="admin-shell">
     <header className="admin-header">
-      <div><div className="admin-brand">ACTON CHESS CLUB</div><h1>Attendance dashboard</h1><p className="subtle">Club participation, player progress, and recognition</p></div>
+      <div className="admin-title"><img className="brand-logo" src="/logo.jpg" alt="Acton Chess Club logo" /><div><div className="admin-brand">ACTON CHESS CLUB</div><h1>Attendance dashboard</h1><p className="subtle">Club participation, player progress, and recognition</p></div></div>
       {report && <button type="button" className="refresh-button" onClick={load} disabled={loading}>Refresh</button>}
     </header>
     <form onSubmit={load} className="admin-login">
@@ -124,7 +124,8 @@ export default function Admin() {
     </>}
 
     {selected && <div className="modal-backdrop" onClick={() => setSelected(null)}><div className="member-card" onClick={e => e.stopPropagation()}>
-      <div className="club-mark">♟ ACTON CHESS CLUB</div>
+      <img className="card-logo" src="/logo.jpg" alt="Acton Chess Club logo" />
+      <div className="club-mark">ACTON CHESS CLUB</div>
       <h2>{selected.full_name}</h2><p>Grade {selected.grade}</p>
       <img src={`/api/qr/${encodeURIComponent(selected.qr_token)}`} alt={`QR membership card for ${selected.full_name}`} />
       <div className="code-label">MEMBER PIN</div><div className="big-code">{selected.member_code}</div>

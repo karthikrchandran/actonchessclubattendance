@@ -22,7 +22,8 @@ export default function QrCheckin({ params }) {
   }
 
   return <main><section className="card qr-checkin">
-    <h1>♟ Acton Chess Club</h1>
+    <img className="brand-logo centered" src="/logo.jpg" alt="Acton Chess Club logo" />
+    <h1>Acton Chess Club</h1>
     <p className="subtle">Member QR check-in</p>
     <p>Confirm that you are at today’s chess club meeting.</p>
     <button onClick={checkin} disabled={loading}>{loading ? 'Checking in…' : 'Confirm check-in'}</button>

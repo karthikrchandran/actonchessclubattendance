@@ -2,7 +2,8 @@ import './styles.css';
 
 export const metadata = {
   title: 'Acton Chess Club Attendance',
-  description: 'Simple weekly check-in for Acton Chess Club'
+  description: 'Simple weekly check-in for Acton Chess Club',
+  icons: { icon: '/logo.jpg' }
 };
 
 export default function RootLayout({ children }) {

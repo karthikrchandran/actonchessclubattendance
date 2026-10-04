@@ -79,8 +79,10 @@ export default function Home() {
   return (
     <main>
       <section className="card">
-        <h1>♟ Acton Chess Club</h1>
-        <p className="subtle">Saturday attendance check-in</p>
+        <div className="brand-header">
+          <img className="brand-logo" src="/logo.jpg" alt="Acton Chess Club logo" />
+          <div><h1>Acton Chess Club</h1><p className="subtle">Saturday attendance check-in</p></div>
+        </div>
 
         <div className="tabs">
           <button type="button" className={mode === 'code' ? 'tab active' : 'tab'} onClick={() => { setMode('code'); resetMessages(); }}>Member check-in</button>
@@ -137,7 +139,8 @@ export default function Home() {
 
         {card && <div className="member-card-wrap">
           <div className="member-card">
-            <div className="club-mark">♟ ACTON CHESS CLUB</div>
+            <img className="card-logo" src="/logo.jpg" alt="Acton Chess Club logo" />
+            <div className="club-mark">ACTON CHESS CLUB</div>
             <h2>{card.name}</h2>
             <p>Grade {card.grade}</p>
             <img src={`/api/qr/${encodeURIComponent(card.qrToken)}`} alt={`QR membership card for ${card.name}`} />
