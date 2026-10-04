@@ -88,10 +88,17 @@ export default function Home() {
         </div>
 
         {mode === 'code' ? <>
-          <div className="return-options">
-            <button type="button" className={returnMethod === 'pin' ? 'choice active' : 'choice'} onClick={() => { setReturnMethod('pin'); resetMessages(); }}>4-digit PIN</button>
-            <button type="button" className={returnMethod === 'contact' ? 'choice active' : 'choice'} onClick={() => { setReturnMethod('contact'); resetMessages(); }}>Email / phone</button>
-          </div>
+          <fieldset className="return-options">
+            <legend>Check-in method</legend>
+            <label className="return-option">
+              <input type="radio" name="returnMethod" value="pin" checked={returnMethod === 'pin'} onChange={() => { setReturnMethod('pin'); resetMessages(); }} />
+              <span>4-digit PIN</span>
+            </label>
+            <label className="return-option">
+              <input type="radio" name="returnMethod" value="contact" checked={returnMethod === 'contact'} onChange={() => { setReturnMethod('contact'); resetMessages(); }} />
+              <span>Email / phone</span>
+            </label>
+          </fieldset>
 
           {returnMethod === 'pin' ? <form onSubmit={submitCode}>
             <label>4-digit member PIN</label>
