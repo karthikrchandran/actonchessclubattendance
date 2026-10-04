@@ -9,8 +9,12 @@ function normalizeContact(v) {
   return x.replace(/\D/g, '');
 }
 function hash(v) { return crypto.createHash('sha256').update(v).digest('hex'); }
-function localDate() {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+function clubDate() {
+  const now = new Date();
+  const timeZone = 'America/New_York';
+  const sessionDate = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+  const weekday = new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'long' }).format(now);
+  return { sessionDate, isSaturday: weekday === 'Saturday' };
 }
 function newCode() {
   return String(crypto.randomInt(0, 10000)).padStart(4, '0');
@@ -41,7 +45,12 @@ async function ensureIdentity(db, member) {
 }
 
 async function recordAttendance(db, member) {
-  const sessionDate = localDate();
+  const { sessionDate, isSaturday } = clubDate();
+  if (!isSaturday) {
+    const error = new Error('Check-in is available only on Saturdays.');
+    error.status = 400;
+    throw error;
+  }
   const { error } = await db.from('attendance').insert({ member_id: member.id, session_date: sessionDate });
   const alreadyCheckedIn = error?.code === '23505';
   if (error && !alreadyCheckedIn) throw error;
@@ -162,6 +171,7 @@ export async function POST(req) {
     return Response.json({ ...memberResponse(member, attendance), isNewMember });
   } catch (e) {
     console.error('CHECKIN ERROR:', e);
+    if (e.status === 400) return Response.json({ error: e.message }, { status: 400 });
     return Response.json({ error: 'Unable to check in right now.' }, { status: 500 });
   }
 }

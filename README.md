@@ -21,6 +21,8 @@ If siblings share the same registration contact, the email/phone recovery flow s
 
 Only one attendance record is allowed per player per calendar day.
 
+Check-in dates are assigned by the server using the `America/New_York` calendar date. Check-in is available only on Saturdays, when the club meets.
+
 ## QR behavior
 
 No native mobile app is required. QR cards render directly in the web app through `/api/qr/[token]`, which generates the QR image on the server. Scanning the code opens `/q/[token]` in the phone browser and asks for confirmation before recording attendance.
