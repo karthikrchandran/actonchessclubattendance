@@ -7,8 +7,8 @@ export async function GET(req) {
   try {
     const db = adminSupabase();
     const { data: members, error: mErr } = await db.from('members')
-      .select('id, full_name, grade, member_code, qr_token, parent_email, parent_phone, whatsapp_phone')
-      .order('full_name');
+      .select('id, full_name, grade, member_code, qr_token, parent_email, parent_phone, whatsapp_phone, member_status, lead_source')
+      .order('created_at', { ascending: false });
     if (mErr) throw mErr;
     const { data: attendance, error: aErr } = await db.from('attendance').select('member_id, session_date');
     if (aErr) throw aErr;
@@ -24,19 +24,20 @@ export async function GET(req) {
     }
 
     const rows = members.map(m => ({ ...m, ...(byMember.get(m.id) || { visits: 0, last_visit: null }) }))
-      .sort((a,b) => b.visits-a.visits || a.full_name.localeCompare(b.full_name));
+      .sort((a,b) => (a.member_status === 'lead') - (b.member_status === 'lead') || b.visits-a.visits || String(a.full_name || '').localeCompare(String(b.full_name || '')));
 
     return Response.json({
       rows,
       summary: {
-        totalMembers: members.length,
+        totalMembers: members.filter(m => m.member_status === 'active').length,
+        totalLeads: members.filter(m => m.member_status === 'lead').length,
         totalCheckins: attendance.length,
         uniqueSessions: sessions.size,
-        completeContacts: members.filter(m => m.parent_email && m.parent_phone).length,
-        recoveryRemaining: members.filter(m => !m.parent_email || !m.parent_phone).length,
-        missingEmail: members.filter(m => !m.parent_email).length,
-        missingPhone: members.filter(m => !m.parent_phone).length,
-        missingWhatsApp: members.filter(m => !m.whatsapp_phone).length
+        completeContacts: members.filter(m => m.member_status === 'active' && m.parent_email && m.parent_phone).length,
+        recoveryRemaining: members.filter(m => m.member_status === 'active' && (!m.parent_email || !m.parent_phone)).length,
+        missingEmail: members.filter(m => m.member_status === 'active' && !m.parent_email).length,
+        missingPhone: members.filter(m => m.member_status === 'active' && !m.parent_phone).length,
+        missingWhatsApp: members.filter(m => m.member_status === 'active' && !m.whatsapp_phone).length
       }
     });
   } catch (e) {

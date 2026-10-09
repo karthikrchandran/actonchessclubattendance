@@ -14,6 +14,18 @@ The supplied phone is also used as the WhatsApp number by default. A family can 
 
 Existing members are NOT re-registered. Their member ID, 4-digit PIN, QR code, and attendance history are preserved. When an older member checks in by PIN or QR and any clear-text contact field is missing, the app asks them once to complete email, phone, and WhatsApp details on the existing record.
 
+## Event contact QR code
+
+`/join` is a contact-only signup page for event visitors. It records only a parent/guardian email and phone number as a `lead` row in `members`; no PIN, QR code, child details, or attendance record is created.
+
+Use source-aware QR targets to identify where someone joined:
+
+- `/join?source=bask-fair`
+- `/join?source=great-road-stroll`
+- `/join?source=weekly-meet`
+
+When a lead later completes First visit registration, the app promotes the matching lead into an `active` member and generates the PIN and QR code at that point.
+
 ## Supabase migration
 
 Run `schema.sql` in the Supabase SQL Editor before deploying this version. It adds `parent_email`, `parent_phone`, and `whatsapp_phone` without deleting existing data.

@@ -2,14 +2,16 @@ create extension if not exists pgcrypto;
 
 create table if not exists members (
   id uuid primary key default gen_random_uuid(),
-  full_name text not null,
-  normalized_name text not null,
-  grade text not null,
+  full_name text,
+  normalized_name text,
+  grade text,
   contact_hash text not null,
   contact_hint text,
   parent_email text,
   parent_phone text,
   whatsapp_phone text,
+  member_status text not null default 'active' check (member_status in ('lead', 'active', 'inactive')),
+  lead_source text,
   member_code text,
   qr_token text,
   created_at timestamptz not null default now(),
@@ -22,6 +24,16 @@ alter table members add column if not exists qr_token text;
 alter table members add column if not exists parent_email text;
 alter table members add column if not exists parent_phone text;
 alter table members add column if not exists whatsapp_phone text;
+alter table members add column if not exists member_status text not null default 'active';
+alter table members add column if not exists lead_source text;
+alter table members alter column full_name drop not null;
+alter table members alter column normalized_name drop not null;
+alter table members alter column grade drop not null;
+
+-- A contact-only event signup is a lead. It has no player details, PIN, QR token, or attendance history.
+alter table members drop constraint if exists members_member_status_check;
+alter table members add constraint members_member_status_check
+  check (member_status in ('lead', 'active', 'inactive'));
 
 create unique index if not exists idx_members_member_code on members(member_code) where member_code is not null;
 create unique index if not exists idx_members_qr_token on members(qr_token) where qr_token is not null;
@@ -38,7 +50,8 @@ declare
 begin
   for r in
     select id from members
-    where member_code is null or member_code !~ '^[0-9]{4}$'
+    where member_status = 'active'
+      and (member_code is null or member_code !~ '^[0-9]{4}$')
   loop
     loop
       candidate := lpad(floor(random() * 10000)::int::text, 4, '0');

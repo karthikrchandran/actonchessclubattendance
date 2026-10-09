@@ -19,7 +19,7 @@ function localDate() {
 function newCode() { return String(crypto.randomInt(0, 10000)).padStart(4, '0'); }
 function newToken() { return crypto.randomBytes(24).toString('base64url'); }
 
-const memberSelect = 'id, full_name, grade, member_code, qr_token, parent_email, parent_phone, whatsapp_phone, contact_hash';
+const memberSelect = 'id, full_name, grade, member_code, qr_token, parent_email, parent_phone, whatsapp_phone, contact_hash, member_status, lead_source';
 
 async function allocateIdentity(db) {
   for (let i = 0; i < 32; i++) {
@@ -48,19 +48,19 @@ async function getMemberByCredential(db, body) {
   if (body.authMemberCode) {
     const code = String(body.authMemberCode).replace(/\D/g, '').slice(0, 4);
     if (code.length !== 4) return null;
-    const { data, error } = await db.from('members').select(memberSelect).eq('member_code', code).maybeSingle();
+    const { data, error } = await db.from('members').select(memberSelect).eq('member_code', code).eq('member_status', 'active').maybeSingle();
     if (error) throw error;
     return data;
   }
   if (body.authQrToken) {
-    const { data, error } = await db.from('members').select(memberSelect).eq('qr_token', String(body.authQrToken).trim()).maybeSingle();
+    const { data, error } = await db.from('members').select(memberSelect).eq('qr_token', String(body.authQrToken).trim()).eq('member_status', 'active').maybeSingle();
     if (error) throw error;
     return data;
   }
   if (body.authContact) {
     const normalized = normalizeContact(body.authContact);
     if (normalized.length < 5) return null;
-    const { data, error } = await db.from('members').select(memberSelect).eq('contact_hash', hash(normalized)).limit(1);
+    const { data, error } = await db.from('members').select(memberSelect).eq('contact_hash', hash(normalized)).eq('member_status', 'active').limit(1);
     if (error) throw error;
     return data?.[0] || null;
   }
@@ -128,7 +128,7 @@ export async function POST(req) {
     if (body.memberCode) {
       const memberCode = String(body.memberCode).replace(/\D/g, '').slice(0, 4);
       if (memberCode.length !== 4) return Response.json({ error: 'Enter your 4-digit member PIN.' }, { status: 400 });
-      const { data, error } = await db.from('members').select(memberSelect).eq('member_code', memberCode).maybeSingle();
+      const { data, error } = await db.from('members').select(memberSelect).eq('member_code', memberCode).eq('member_status', 'active').maybeSingle();
       if (error) throw error;
       if (!data) return Response.json({ error: 'Member PIN not found. Try the email/phone option or use your QR code.' }, { status: 404 });
       const member = await ensureIdentity(db, data);
@@ -141,7 +141,7 @@ export async function POST(req) {
       const contact = normalizeContact(body.contactLookup);
       if (contact.length < 5) return Response.json({ error: 'Enter the email or phone used when the player registered.' }, { status: 400 });
       const contactHash = hash(contact);
-      const { data, error } = await db.from('members').select(memberSelect).eq('contact_hash', contactHash).order('full_name');
+      const { data, error } = await db.from('members').select(memberSelect).eq('contact_hash', contactHash).eq('member_status', 'active').order('full_name');
       if (error) throw error;
       if (!data?.length) {
         // Also support the new clear-text fields for members whose current contact differs from the legacy hash.
@@ -149,6 +149,7 @@ export async function POST(req) {
         const phone = contact.includes('@') ? null : contact;
         let query = db.from('members').select(memberSelect);
         query = email ? query.eq('parent_email', email) : query.or(`parent_phone.eq.${phone},whatsapp_phone.eq.${phone}`);
+        query = query.eq('member_status', 'active');
         const second = await query.order('full_name');
         if (second.error) throw second.error;
         if (!second.data?.length) return Response.json({ error: 'No player was found with that email or phone.' }, { status: 404 });
@@ -173,7 +174,7 @@ export async function POST(req) {
 
     if (body.qrToken) {
       const qrToken = String(body.qrToken).trim();
-      const { data: member, error } = await db.from('members').select(memberSelect).eq('qr_token', qrToken).maybeSingle();
+      const { data: member, error } = await db.from('members').select(memberSelect).eq('qr_token', qrToken).eq('member_status', 'active').maybeSingle();
       if (error) throw error;
       if (!member) return Response.json({ error: 'This member QR code is not recognized.' }, { status: 404 });
       const attendance = await recordAttendance(db, member);
@@ -206,20 +207,27 @@ export async function POST(req) {
     let isNewMember = false;
     if (!member) {
       const { memberCode, qrToken } = await allocateIdentity(db);
-      const { data, error } = await db.from('members').insert({
-        full_name: name,
-        normalized_name: normalizedName,
-        grade,
-        contact_hash: contactHash,
+      // Turn a contact-only event signup into a member rather than duplicating it.
+      let leadQuery = db.from('members').select(memberSelect).eq('member_status', 'lead');
+      leadQuery = leadQuery.or(`parent_email.eq.${email},parent_phone.eq.${phone}`).limit(1);
+      const { data: lead, error: leadError } = await leadQuery.maybeSingle();
+      if (leadError) throw leadError;
+
+      const payload = {
+        full_name: name, normalized_name: normalizedName, grade, contact_hash: contactHash,
         contact_hint: email.replace(/^(.{1,2}).*(@.*)$/, '$1***$2'),
-        parent_email: email,
-        parent_phone: phone,
-        whatsapp_phone: whatsapp,
-        member_code: memberCode,
-        qr_token: qrToken
-      }).select(memberSelect).single();
-      if (error) throw error;
-      member = data;
+        parent_email: email, parent_phone: phone, whatsapp_phone: whatsapp,
+        member_status: 'active', member_code: memberCode, qr_token: qrToken
+      };
+      if (lead) {
+        const { data, error } = await db.from('members').update(payload).eq('id', lead.id).select(memberSelect).single();
+        if (error) throw error;
+        member = data;
+      } else {
+        const { data, error } = await db.from('members').insert(payload).select(memberSelect).single();
+        if (error) throw error;
+        member = data;
+      }
       isNewMember = true;
     } else {
       member = await ensureIdentity(db, member);

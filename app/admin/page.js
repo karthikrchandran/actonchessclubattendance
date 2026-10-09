@@ -36,10 +36,10 @@ export default function Admin() {
   }
 
   function downloadCsv() {
-    const header = ['Player','Grade','PIN','Email','Phone','WhatsApp','Visits','Last visit'];
+    const header = ['Status','Source','Player','Grade','PIN','Email','Phone','WhatsApp','Visits','Last visit'];
     const lines = [header.map(csvEscape).join(',')];
     for (const r of rows) {
-      lines.push([r.full_name, r.grade, r.member_code, r.parent_email, r.parent_phone, r.whatsapp_phone, r.visits, r.last_visit].map(csvEscape).join(','));
+      lines.push([r.member_status, r.lead_source, r.full_name, r.grade, r.member_code, r.parent_email, r.parent_phone, r.whatsapp_phone, r.visits, r.last_visit].map(csvEscape).join(','));
     }
     const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -59,15 +59,15 @@ export default function Admin() {
     {error && <div className="message error">{error}</div>}
     {notice && <div className="message success">{notice}</div>}
     {summary && <>
-      <div className="message"><b>{summary.totalMembers}</b> registered players · <b>{summary.totalCheckins}</b> total check-ins · <b>{summary.uniqueSessions}</b> club dates</div>
+      <div className="message"><b>{summary.totalMembers}</b> registered players · <b>{summary.totalLeads}</b> event contacts · <b>{summary.totalCheckins}</b> total check-ins · <b>{summary.uniqueSessions}</b> club dates</div>
       <div className="message"><b>{summary.completeContacts}</b> contacts recovered · <b>{summary.recoveryRemaining}</b> legacy records still need recovery · <b>{summary.missingEmail}</b> missing email · <b>{summary.missingPhone}</b> missing phone</div>
       <div className="admin-actions">
         <button type="button" onClick={copyEmails}>Copy all emails</button>
         <button type="button" className="secondary" onClick={downloadCsv}>Download CSV</button>
       </div>
     </>}
-    {rows.length > 0 && <div className="table-scroll"><table><thead><tr><th>Player</th><th>Grade</th><th>PIN</th><th>Email</th><th>Phone</th><th>WhatsApp</th><th>Visits</th><th>Last visit</th><th>Card</th></tr></thead><tbody>
-      {rows.map(r => <tr key={r.id}><td>{r.full_name}</td><td>{r.grade}</td><td><b>{r.member_code || '—'}</b></td><td>{r.parent_email || 'Needs restore'}</td><td>{r.parent_phone || 'Needs restore'}</td><td>{r.whatsapp_phone || 'Needs restore'}</td><td>{r.visits}</td><td>{r.last_visit || '—'}</td><td><button className="mini-button" type="button" onClick={() => showCard(r)}>View</button></td></tr>)}
+    {rows.length > 0 && <div className="table-scroll"><table><thead><tr><th>Status</th><th>Source</th><th>Player</th><th>Grade</th><th>PIN</th><th>Email</th><th>Phone</th><th>WhatsApp</th><th>Visits</th><th>Last visit</th><th>Card</th></tr></thead><tbody>
+      {rows.map(r => <tr key={r.id}><td>{r.member_status === 'lead' ? 'Event contact' : r.member_status}</td><td>{r.lead_source || '—'}</td><td>{r.full_name || '—'}</td><td>{r.grade || '—'}</td><td><b>{r.member_code || '—'}</b></td><td>{r.parent_email || 'Needs restore'}</td><td>{r.parent_phone || 'Needs restore'}</td><td>{r.whatsapp_phone || '—'}</td><td>{r.visits}</td><td>{r.last_visit || '—'}</td><td>{r.member_status === 'active' ? <button className="mini-button" type="button" onClick={() => showCard(r)}>View</button> : '—'}</td></tr>)}
     </tbody></table></div>}
 
     {selected && <div className="modal-backdrop" onClick={() => setSelected(null)}><div className="member-card" onClick={e => e.stopPropagation()}>
