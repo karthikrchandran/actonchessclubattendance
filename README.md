@@ -1,50 +1,35 @@
 # Acton Chess Club Attendance
 
-A free recurring attendance app for phone or iPad check-in, with 4-digit member PINs, email/phone recovery, and personal QR membership cards.
+Next.js + Supabase attendance app for Acton Chess Club.
 
-## Check-in flow
+## Contact model
 
-### First visit
-1. Player enters name, grade, and a parent/guardian or student email/phone.
-2. Contact is normalized and hashed before storage; only a masked hint is retained.
-3. The app creates a unique 4-digit numeric member PIN and a separate long random QR token.
-4. Attendance is recorded for that date.
-5. The web app displays a membership card containing both the QR code and member PIN. A screenshot can be kept on the family phone.
+New registrations require:
+- Player name
+- Grade
+- Parent/guardian email
+- Parent/guardian phone
 
-### Returning visit
-A player can use any of these methods:
-- Enter the 4-digit PIN on the club iPad.
-- Enter the exact email or phone used at registration if the PIN was forgotten.
-- Scan the personal QR code with a phone and tap **Confirm check-in**.
+The supplied phone is also used as the WhatsApp number by default. A family can check **Use a different WhatsApp number** and provide a separate WhatsApp-capable number.
 
-If siblings share the same registration contact, the email/phone recovery flow shows only the players attached to that exact contact so the correct child can be selected.
+Existing members are NOT re-registered. Their member ID, 4-digit PIN, QR code, and attendance history are preserved. When an older member checks in by PIN or QR and any clear-text contact field is missing, the app asks them once to complete email, phone, and WhatsApp details on the existing record.
 
-Only one attendance record is allowed per player per calendar day.
+## Supabase migration
 
-Check-in dates are assigned by the server using the `America/New_York` calendar date. Check-in is available only on Saturdays, when the club meets.
+Run `schema.sql` in the Supabase SQL Editor before deploying this version. It adds `parent_email`, `parent_phone`, and `whatsapp_phone` without deleting existing data.
 
-## QR behavior
+## Environment variables
 
-No native mobile app is required. QR cards render directly in the web app through `/api/qr/[token]`, which generates the QR image on the server. Scanning the code opens `/q/[token]` in the phone browser and asks for confirmation before recording attendance.
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `ADMIN_PASSWORD`
 
-## Admin report
+## Admin
 
-`/admin` shows registered players, 4-digit member PINs, total visits, last visit, and a **View** button to re-open/print a player's QR membership card.
+`/admin` shows email, phone, WhatsApp number, attendance counts, and supports CSV export.
 
-## Setup
+## One-time legacy contact recovery
 
-1. Create a free Supabase project.
-2. Open Supabase SQL Editor and run `schema.sql`.
-3. Create a Vercel project from this repository.
-4. Add these Vercel environment variables:
-   - `SUPABASE_URL`
-   - `SUPABASE_SERVICE_ROLE_KEY`
-   - `ADMIN_PASSWORD`
-5. Deploy.
-6. Keep the root URL open on the club iPad.
+Older member records that contain only `contact_hash` are not re-registered. After a successful PIN, QR, or legacy email/phone check-in, the app checks whether both `parent_email` and `parent_phone` are present. If either is missing, it shows a one-time recovery form. Once both values are saved, future check-ins do not show the recovery form.
 
-## Privacy design
-
-For younger children, use a parent/guardian contact. Older students may use their own email/phone if appropriate. The original contact value is not stored; only a SHA-256 hash plus a masked hint is retained.
-
-The personal QR does not contain the child's name, grade, phone, or email. It contains only a long random token that maps to the member on the server.
+The admin report includes a `legacy records still need recovery` count so recovery progress can be monitored.

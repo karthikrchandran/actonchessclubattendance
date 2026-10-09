@@ -7,18 +7,27 @@ create table if not exists members (
   grade text not null,
   contact_hash text not null,
   contact_hint text,
+  parent_email text,
+  parent_phone text,
+  whatsapp_phone text,
   member_code text,
   qr_token text,
   created_at timestamptz not null default now(),
   unique (normalized_name, grade, contact_hash)
 );
 
--- Safe migration if you created the original v1 schema first.
+-- Safe migration if you created an earlier schema first.
 alter table members add column if not exists member_code text;
 alter table members add column if not exists qr_token text;
+alter table members add column if not exists parent_email text;
+alter table members add column if not exists parent_phone text;
+alter table members add column if not exists whatsapp_phone text;
 
 create unique index if not exists idx_members_member_code on members(member_code) where member_code is not null;
 create unique index if not exists idx_members_qr_token on members(qr_token) where qr_token is not null;
+create index if not exists idx_members_parent_email on members(lower(parent_email)) where parent_email is not null;
+create index if not exists idx_members_parent_phone on members(parent_phone) where parent_phone is not null;
+create index if not exists idx_members_whatsapp_phone on members(whatsapp_phone) where whatsapp_phone is not null;
 
 -- Migrate any older alphanumeric member codes to unique 4-digit numeric PINs.
 -- Existing 4-digit PINs are preserved. This supports up to 10,000 members.
@@ -38,7 +47,6 @@ begin
     update members set member_code = candidate where id = r.id;
   end loop;
 end $$;
-
 
 create table if not exists attendance (
   id bigint generated always as identity primary key,
