@@ -105,13 +105,14 @@ export default function Home() {
   }
 
   return <main><section className="card">
-    <h1>♟ Acton Chess Club</h1>
-    <p className="subtle">Saturday attendance check-in</p>
-
-    <div className="tabs">
-      <button type="button" className={mode === 'code' ? 'tab active' : 'tab'} onClick={() => { setMode('code'); resetMessages(); }}>Member check-in</button>
-      <button type="button" className={mode === 'register' ? 'tab active' : 'tab'} onClick={() => { setMode('register'); resetMessages(); }}>First visit</button>
-    </div>
+    <header className="club-header">
+      <img className="club-logo" src="/acton-chess-club-logo.jpg" alt="Acton Chess Club rook logo" />
+      <div><h1>Acton Chess Club</h1><p className="subtle">Saturday attendance check-in</p></div>
+    </header>
+    <fieldset className="mode-options" aria-label="Choose check-in type">
+      <label className={mode === 'register' ? 'mode-option selected' : 'mode-option'}><input type="radio" name="checkin-mode" checked={mode === 'register'} onChange={() => { setMode('register'); resetMessages(); }} /><span>First visit</span></label>
+      <label className={mode === 'code' ? 'mode-option selected' : 'mode-option'}><input type="radio" name="checkin-mode" checked={mode === 'code'} onChange={() => { setMode('code'); resetMessages(); }} /><span>Member check-in</span></label>
+    </fieldset>
 
     {mode === 'code' ? <>
       <div className="return-options">
@@ -124,6 +125,7 @@ export default function Home() {
         <input className="member-code-input" value={form.memberCode} onChange={e => update('memberCode', e.target.value.replace(/\D/g, '').slice(0, 4))} required placeholder="Example: 4827" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} autoComplete="off" />
         <p className="small">Or scan your personal Acton Chess Club QR code with a phone.</p>
         <button disabled={loading}>{loading ? 'Checking in…' : 'Check in'}</button>
+        <button type="button" className="link-button" onClick={() => { setReturnMethod('contact'); resetMessages(); }}>Forgot your PIN? Use email or phone</button>
       </form> : <form onSubmit={submitContact}>
         <label>Email or phone used at registration</label>
         <input value={form.lookupContact} onChange={e => update('lookupContact', e.target.value)} required placeholder="Parent/guardian email or phone" autoCapitalize="none" />

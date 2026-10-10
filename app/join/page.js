@@ -29,8 +29,7 @@ export default function Join() {
   }
 
   return <main><section className="card">
-    <h1>♟ Acton Chess Club</h1>
-    <p className="subtle">Get club updates</p>
+    <header className="club-header"><img className="club-logo" src="/acton-chess-club-logo.jpg" alt="Acton Chess Club rook logo" /><div><h1>Acton Chess Club</h1><p className="subtle">Get club updates</p></div></header>
     <p>Leave a parent/guardian email and mobile number for weekly meetings and upcoming events.</p>
     <form onSubmit={submit}>
       <label>Parent/guardian email</label>

@@ -38,7 +38,7 @@ export default function QrCheckin({ params }) {
   }
 
   return <main><section className="card qr-checkin">
-    <h1>♟ Acton Chess Club</h1><p className="subtle">Member QR check-in</p><p>Confirm that you are at today’s chess club meeting.</p>
+    <header className="club-header"><img className="club-logo" src="/acton-chess-club-logo.jpg" alt="Acton Chess Club rook logo" /><div><h1>Acton Chess Club</h1><p className="subtle">Member QR check-in</p></div></header><p>Confirm that you are at today’s chess club meeting.</p>
     <button onClick={checkin} disabled={loading}>{loading ? 'Checking in…' : 'Confirm check-in'}</button>
     {status && <div className={`message ${status.ok ? 'success' : 'error'}`}>{status.text}</div>}
     {pendingContact && <form className="contact-restore" onSubmit={saveContact}>

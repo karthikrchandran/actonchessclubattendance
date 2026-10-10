@@ -51,7 +51,7 @@ export default function Admin() {
   }
 
   return <main><section className="card admin-card">
-    <h1>Attendance report</h1>
+    <header className="club-header"><img className="club-logo" src="/acton-chess-club-logo.jpg" alt="Acton Chess Club rook logo" /><div><h1>Attendance report</h1><p className="subtle">Acton Chess Club administration</p></div></header>
     <form onSubmit={load} className="row">
       <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Admin password" required />
       <button style={{marginTop:0}}>Load report</button>
@@ -71,7 +71,7 @@ export default function Admin() {
     </tbody></table></div>}
 
     {selected && <div className="modal-backdrop" onClick={() => setSelected(null)}><div className="member-card" onClick={e => e.stopPropagation()}>
-      <div className="club-mark">♟ ACTON CHESS CLUB</div>
+      <div className="club-mark">ACTON CHESS CLUB</div>
       <h2>{selected.full_name}</h2><p>Grade {selected.grade}</p>
       <img src={`/api/qr/${encodeURIComponent(selected.qr_token)}`} alt={`QR membership card for ${selected.full_name}`} />
       <div className="code-label">MEMBER PIN</div><div className="big-code">{selected.member_code}</div>
