@@ -134,7 +134,7 @@ export default function Home() {
       </form>}
 
       {matches.length > 0 && <div className="match-list">
-        {matches.map(m => <button key={m.memberCode} type="button" className="match-button" disabled={loading} onClick={() => chooseMatch(m.memberCode)}><span>{m.fullName}</span><small>Grade {m.grade}</small></button>)}
+        {matches.map(m => <button key={m.memberCode} type="button" className="match-button" disabled={loading} onClick={() => chooseMatch(m.memberCode)}><span><b>{m.fullName}</b><small>Grade {m.grade}</small></span><span className="match-pin">PIN {m.memberCode}</span></button>)}
       </div>}
     </> : <form onSubmit={submitRegistration}>
       <label>Player name</label>

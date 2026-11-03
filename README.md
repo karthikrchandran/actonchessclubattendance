@@ -45,3 +45,9 @@ Run `schema.sql` in the Supabase SQL Editor before deploying this version. It ad
 Older member records that contain only `contact_hash` are not re-registered. After a successful PIN, QR, or legacy email/phone check-in, the app checks whether both `parent_email` and `parent_phone` are present. If either is missing, it shows a one-time recovery form. Once both values are saved, future check-ins do not show the recovery form.
 
 The admin report includes a `legacy records still need recovery` count so recovery progress can be monitored.
+
+## Join-page membership behavior
+
+`/join` is now a full membership registration page. It collects player name, grade, parent/guardian email, parent/guardian phone, and optional alternate WhatsApp number. It creates the active member immediately with a unique 4-digit PIN and QR token, but does **not** record attendance. Parent email/phone are intentionally not unique across members; siblings may share the same contact details and each receive their own member identity.
+
+Returning lookup by email or phone unions legacy contact-hash matches with clear-text email/phone/WhatsApp matches, deduplicates by member ID, and returns every matching child. The UI shows each child's name, grade, and PIN before selection.

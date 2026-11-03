@@ -77,3 +77,6 @@ th, td { text-align: left; padding: 10px; border-bottom: 1px solid #e5e7eb; font
   margin-top: 0.2rem;
 }
 @media (max-width: 480px) { main { padding: 16px 12px; } .card { padding: 22px 18px; border-radius: 20px; } .club-header { gap: 12px; } .club-logo { width: 58px; height: 58px; } .mode-options { grid-template-columns: 1fr; gap: 4px; } }
+.match-button > span:first-child { display: grid; gap: 2px; }
+.match-button > span:first-child small { display: block; }
+.match-pin { font-weight: 900; letter-spacing: .08em; white-space: nowrap; }

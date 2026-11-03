@@ -141,23 +141,33 @@ export async function POST(req) {
       const contact = normalizeContact(body.contactLookup);
       if (contact.length < 5) return Response.json({ error: 'Enter the email or phone used when the player registered.' }, { status: 400 });
       const contactHash = hash(contact);
-      const { data, error } = await db.from('members').select(memberSelect).eq('contact_hash', contactHash).eq('member_status', 'active').order('full_name');
-      if (error) throw error;
-      if (!data?.length) {
-        // Also support the new clear-text fields for members whose current contact differs from the legacy hash.
-        const email = contact.includes('@') ? contact : null;
-        const phone = contact.includes('@') ? null : contact;
-        let query = db.from('members').select(memberSelect);
-        query = email ? query.eq('parent_email', email) : query.or(`parent_phone.eq.${phone},whatsapp_phone.eq.${phone}`);
-        query = query.eq('member_status', 'active');
-        const second = await query.order('full_name');
-        if (second.error) throw second.error;
-        if (!second.data?.length) return Response.json({ error: 'No player was found with that email or phone.' }, { status: 404 });
-        data.push(...second.data);
+      const found = new Map();
+
+      // Search the legacy one-way hash AND the newer clear-text contact columns every time.
+      // This is important when siblings share a parent contact and some records are legacy while others are newer.
+      const byHash = await db.from('members').select(memberSelect).eq('contact_hash', contactHash).eq('member_status', 'active');
+      if (byHash.error) throw byHash.error;
+      for (const row of byHash.data || []) found.set(row.id, row);
+
+      if (contact.includes('@')) {
+        const byEmail = await db.from('members').select(memberSelect).eq('parent_email', contact).eq('member_status', 'active');
+        if (byEmail.error) throw byEmail.error;
+        for (const row of byEmail.data || []) found.set(row.id, row);
+      } else {
+        const byPhone = await db.from('members').select(memberSelect).eq('parent_phone', contact).eq('member_status', 'active');
+        if (byPhone.error) throw byPhone.error;
+        for (const row of byPhone.data || []) found.set(row.id, row);
+
+        const byWhatsApp = await db.from('members').select(memberSelect).eq('whatsapp_phone', contact).eq('member_status', 'active');
+        if (byWhatsApp.error) throw byWhatsApp.error;
+        for (const row of byWhatsApp.data || []) found.set(row.id, row);
       }
 
+      const rows = [...found.values()].sort((a, b) => String(a.full_name || '').localeCompare(String(b.full_name || '')));
+      if (!rows.length) return Response.json({ error: 'No player was found with that email or phone.' }, { status: 404 });
+
       const members = [];
-      for (const row of data) members.push(await ensureIdentity(db, row));
+      for (const row of rows) members.push(await ensureIdentity(db, row));
       if (members.length > 1) {
         return Response.json({
           ok: true,
